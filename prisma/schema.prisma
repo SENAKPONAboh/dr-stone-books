@@ -1,0 +1,166 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Rôles possibles dans l'application
+enum Role {
+  ETUDIANT
+  CORRECTEUR
+  ADMIN
+}
+
+// 2. Statuts des soumissions de cas cliniques
+enum SubmissionStatus {
+  PENDING
+  GRADED
+}
+
+// 3. Statuts des challenges
+enum ChallengeStatus {
+  ACTIVE
+  UPCOMING
+  ENDED
+}
+
+// Table des Utilisateurs (Étudiants, Correcteurs, Admins)
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  firstName     String?   // NOUVEAU : Prénom
+  email         String    @unique
+  password      String    // Mot de passe hashé (bcrypt)
+  phone         String?   // NOUVEAU : Téléphone
+  country       String?   // NOUVEAU : Pays
+  university    String?   // Ex: Faculté de Médecine
+  faculty       String?   // NOUVEAU : Faculté spécifique
+  level         String?   // NOUVEAU : Niveau d'études (ex: 4e année)
+  role          Role      @default(ETUDIANT)
+  points        Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  usedCodes     ActivationCode[]     @relation("UserUsedCodes")
+  activatedBooks BookActivation[]
+  submissions    CaseSubmission[]
+  challengeParts ChallengeParticipant[]
+  userBadges     UserBadge[]
+  corrections    CaseSubmission[]     @relation("CorrectedBy")
+
+  @@map("users")
+}
+
+// Table des Livres physiques (pour lier les codes d'activation)
+model Book {
+  id          String           @id @default(uuid())
+  title       String           // Ex: Anatomie & Biologie Cellulaire
+  edition     String           // Ex: Édition 2027
+  createdAt   DateTime         @default(now())
+
+  codes       ActivationCode[]
+
+  @@map("books")
+}
+
+// Table des Codes d'activation uniques générés par l'Admin
+model ActivationCode {
+  id        String    @id @default(uuid())
+  code      String    @unique // Ex: DSB-ANA-2027-XYZ987
+  bookId    String
+  book      Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  isUsed    Boolean   @default(false)
+  
+  usedById  String?
+  usedBy    User?     @relation("UserUsedCodes", fields: [usedById], references: [id], onDelete: SetNull)
+  
+  createdAt DateTime  @default(now())
+
+  @@map("activation_codes")
+}
+
+// Table de liaison pour les livres activés par un étudiant
+model BookActivation {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookTitle   String
+  activatedAt DateTime @default(now())
+
+  @@map("book_activations")
+}
+
+// Table des Soumissions de cas cliniques (Copies envoyées par les étudiants)
+model CaseSubmission {
+  id            String           @id @default(uuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookTitle     String
+  caseNumber    String           // Ex: Cas Clinique 01
+  imageUrl      String           // Lien vers l'image uploadée de la copie
+  status        SubmissionStatus @default(PENDING)
+  grade         Int?             // Points attribués
+  feedback      String?          // Commentaire du correcteur
+  correctedById String?
+  correctedBy   User?            @relation("CorrectedBy", fields: [correctedById], references: [id], onDelete: SetNull)
+  submittedAt   DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@map("case_submissions")
+}
+
+// Table des Challenges & Concours
+model Challenge {
+  id                String               @id @default(uuid())
+  title             String
+  month             String
+  description       String
+  reward            String
+  status            ChallengeStatus      @default(ACTIVE)
+  participantsCount Int                  @default(0)
+  participants      ChallengeParticipant[]
+  createdAt         DateTime             @default(now())
+
+  @@map("challenges")
+}
+
+// Table de liaison étudiants / challenges
+model ChallengeParticipant {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  joinedAt    DateTime  @default(now())
+
+  @@unique([userId, challengeId])
+  @@map("challenge_participants")
+}
+
+// Table des Badges de réussite
+model Badge {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  icon        String      // Emoji ou icône
+  userBadges  UserBadge[]
+
+  @@map("badges")
+}
+
+// Table de liaison pour les badges débloqués par les utilisateurs
+model UserBadge {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId    String
+  badge      Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
