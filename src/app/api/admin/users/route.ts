@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
 
 // 1. Récupérer tous les utilisateurs (GET)
 export async function GET() {
