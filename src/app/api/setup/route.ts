@@ -22,10 +22,10 @@ export async function GET() {
     const newAdmin = await prisma.user.create({
       data: {
         firstName: "Arthur",
-        lastName: "ABOH",
+        name: "ABOH",
         email: "arthur@drstonebooks.com",
         password: hashedPassword,
-        role: "SUPER_ADMIN",
+        role: "ADMIN",
       }
     });
 
