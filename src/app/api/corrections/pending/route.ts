@@ -5,17 +5,14 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const pendingSubmissions = await prisma.submission.findMany({
+    const pendingSubmissions = await prisma.caseSubmission.findMany({
       where: { status: 'PENDING' },
       include: {
         user: {
-          select: { firstName: true, lastName: true, studyLevel: true },
-        },
-        case: {
-          select: { title: true, number: true, difficulty: true, maxPoints: true },
+          select: { name: true, firstName: true, level: true, university: true },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { submittedAt: 'asc' },
     });
 
     return NextResponse.json(pendingSubmissions, { status: 200 });
