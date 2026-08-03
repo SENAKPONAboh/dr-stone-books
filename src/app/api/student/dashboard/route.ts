@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Helper pour déterminer le Grade / Titre selon les points
-function getMedicalRank(points: Int) {
+function getMedicalRank(points: number) {
   if (points >= 3500) return { title: 'Professeur / Expert', stars: '⭐️⭐️⭐️⭐️⭐️' };
   if (points >= 1500) return { title: 'Médecin Élite', stars: '⭐️⭐️⭐️⭐️' };
   if (points >= 500) return { title: 'Médecin Raisonneur', stars: '⭐️⭐️⭐️' };
@@ -24,21 +24,11 @@ export async function GET(request: Request) {
       );
     }
 
-    // Récupérer l'utilisateur avec ses livres activés et universités
+    // Récupérer l'utilisateur avec ses activations de livres
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        university: true,
-        faculty: true,
-        activations: {
-          include: {
-            edition: {
-              include: {
-                book: true,
-              },
-            },
-          },
-        },
+        activatedBooks: true,
       },
     });
 
@@ -52,24 +42,24 @@ export async function GET(request: Request) {
     const rank = getMedicalRank(user.points);
 
     // Formater la liste des livres activés
-    const activatedBooks = user.activations.map((act) => ({
+    // @ts-ignore
+    const activatedBooks = (user.activatedBooks || []).map((act: any) => ({
       activationId: act.id,
-      bookTitle: act.edition.book.title,
-      edition: act.edition.edition,
-      activatedAt: act.usedAt,
+      bookTitle: act.bookTitle,
+      activatedAt: act.activatedAt,
     }));
 
     const responseData = {
       id: user.id,
       firstName: user.firstName,
-      lastName: user.lastName,
+      name: user.name,
       email: user.email,
       points: user.points,
       rankTitle: rank.title,
       stars: rank.stars,
-      studyLevel: user.studyLevel,
-      university: user.university?.name || 'Non renseignée',
-      faculty: user.faculty?.name || 'Non renseignée',
+      studyLevel: user.level,
+      university: user.university || 'Non renseignée',
+      faculty: user.faculty || 'Non renseignée',
       booksCount: activatedBooks.length,
       activatedBooks,
     };
