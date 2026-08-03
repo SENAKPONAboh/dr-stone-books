@@ -13,11 +13,11 @@ function generateUniqueCode(prefix = 'DSB'): string {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { editionId, quantity = 10, prefix = 'DSB' } = data;
+    const { editionId, bookId, quantity = 10, prefix = 'DSB' } = data;
 
-    if (!editionId) {
+    if (!editionId || !bookId) {
       return NextResponse.json(
-        { message: "L'identifiant de l'édition du livre est requis." },
+        { message: "L'identifiant de l'édition et l'identifiant du livre sont requis." },
         { status: 400 }
       );
     }
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       codesToCreate.push({
         code,
         editionId,
+        bookId,
         status: 'available',
       });
     }
