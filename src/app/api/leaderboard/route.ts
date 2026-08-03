@@ -17,18 +17,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const limit = Number(searchParams.get('limit')) || 50;
 
-    // Récupérer les étudiants triés par points décroissants
+    // Récupérer les étudiants triés par points décroissants (rôle ETUDIANT d'après le schéma)
     const topStudents = await prisma.user.findMany({
-      where: { role: 'STUDENT' },
+      where: { role: 'ETUDIANT' },
       select: {
         id: true,
         firstName: true,
-        lastName: true,
+        name: true,
         points: true,
-        studyLevel: true,
-        university: {
-          select: { name: true },
-        },
+        level: true,
+        university: true,
       },
       orderBy: { points: 'desc' },
       take: limit,
@@ -37,15 +35,17 @@ export async function GET(request: Request) {
     // Ajouter le rang, les étoiles et le titre de chaque étudiant
     const leaderboard = topStudents.map((student, index) => {
       const rankInfo = getMedicalRank(student.points);
+      const firstNameDisplay = student.firstName || student.name;
+      
       return {
         position: index + 1,
         id: student.id,
-        fullName: `${student.firstName} ${student.lastName.charAt(0)}.`, // Nom anonymisé pour confidentialité
+        fullName: `${firstNameDisplay} ${student.name.charAt(0)}.`,
         points: student.points,
         rankTitle: rankInfo.title,
         stars: rankInfo.stars,
-        studyLevel: student.studyLevel || 'Non précisé',
-        university: student.university?.name || 'Non renseignée',
+        studyLevel: student.level || 'Non précisé',
+        university: student.university || 'Non renseignée',
       };
     });
 
