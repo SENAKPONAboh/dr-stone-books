@@ -10,15 +10,15 @@ export async function POST(request: Request) {
 
     if (!userId || !code) {
       return NextResponse.json(
-        { message: 'Utilisateur et code d activation requis.' },
+        { message: 'Utilisateur et code d\'activation requis.' },
         { status: 400 }
       );
     }
 
-    // 1. Rechercher le code
+    // 1. Rechercher le code et inclure le livre associé
     const activationCode = await prisma.activationCode.findUnique({
       where: { code: code.trim().toUpperCase() },
-      include: { edition: true },
+      include: { book: true },
     });
 
     // Vérification 1 : Existence du code
@@ -29,35 +29,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // Vérification 2 : Déjà utilisé ou bloqué
-    if (activationCode.isUsed || activationCode.status !== 'available') {
+    // Vérification 2 : Déjà utilisé
+    if (activationCode.isUsed) {
       return NextResponse.json(
-        { message: '❌ Ce code a déjà été activé ou est désactivé.' },
+        { message: '❌ Ce code a déjà été utilisé.' },
         { status: 400 }
       );
     }
 
     // 2. Marquer le code comme utilisé et l'associer à l'étudiant
-    const updatedCode = await prisma.activationCode.update({
+    await prisma.activationCode.update({
       where: { id: activationCode.id },
       data: {
         isUsed: true,
-        status: 'activated',
-        userId: userId,
-        usedAt: new Date(),
+        usedById: userId,
       },
     });
 
     return NextResponse.json(
       {
         message: '✅ Livre activé avec succès !',
-        editionId: activationCode.editionId,
+        bookId: activationCode.bookId,
       },
       { status: 200 }
     );
   } catch (error) {
     return NextResponse.json(
-      { message: "Erreur lors de l'activation du livre.", error },
+      { message: 'Erreur lors de l\'activation du livre.', error },
       { status: 500 }
     );
   }
