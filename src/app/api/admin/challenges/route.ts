@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ChallengeStatus } from '@prisma/client';
+export const dynamic = 'force-dynamic';
 
 // GET : Récupérer tous les challenges avec le nombre de participants
 export async function GET() {
