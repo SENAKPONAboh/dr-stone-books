@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+export const dynamic = 'force-dynamic';
 
 const prisma = new PrismaClient();
 
